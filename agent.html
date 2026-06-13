@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>심부름 대리점 포털</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --primary: #FF4B2B; --primary-dim: rgba(255,75,43,0.12);
+  --green: #2ECC71; --green-dim: rgba(46,204,113,0.12);
+  --orange: #F39C12; --orange-dim: rgba(243,156,18,0.12);
+  --blue: #4F7FFF; --blue-dim: rgba(79,127,255,0.12);
+  --bg: #F7F7F8; --bg2: #FFFFFF;
+  --text: #1A1A1A; --text2: #555; --text3: #AAA;
+  --border: #E8E8EC; --radius: 14px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* 로그인 */
+.login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.login-card { background: var(--bg2); border-radius: 20px; padding: 40px 32px; width: 100%; max-width: 380px; box-shadow: 0 8px 40px rgba(0,0,0,0.08); }
+.login-logo { text-align: center; margin-bottom: 32px; }
+.login-logo-icon { width: 60px; height: 60px; background: var(--primary); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 12px; }
+.login-logo-text { font-size: 22px; font-weight: 800; color: var(--text); }
+.login-logo-sub { font-size: 13px; color: var(--text3); margin-top: 4px; }
+.form-label { font-size: 12px; font-weight: 700; color: var(--text2); margin-bottom: 6px; display: block; }
+.form-input { width: 100%; background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; padding: 12px 14px; font-size: 14px; color: var(--text); font-family: inherit; outline: none; transition: border-color 0.15s; margin-bottom: 14px; }
+.form-input:focus { border-color: var(--primary); }
+.login-btn { width: 100%; height: 52px; background: var(--primary); color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; font-family: inherit; margin-top: 4px; }
+.login-btn:hover { opacity: 0.9; }
+.login-error { color: var(--primary); font-size: 12px; text-align: center; margin-top: 10px; }
+
+/* 메인 */
+.header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+.header-logo { display: flex; align-items: center; gap: 10px; }
+.header-logo-mark { width: 32px; height: 32px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.header-title { font-size: 15px; font-weight: 700; color: var(--text); }
+.header-agent { font-size: 12px; color: var(--text3); }
+.logout-btn { padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border); background: transparent; font-size: 12px; color: var(--text2); cursor: pointer; font-family: inherit; }
+
+.content { max-width: 900px; margin: 0 auto; padding: 24px; }
+
+/* 카드 */
+.card { background: var(--bg2); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+.card-title { font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px; }
+
+/* 통계 카드 */
+.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+.stat-card { background: var(--bg2); border-radius: var(--radius); padding: 18px; box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+.stat-label { font-size: 11px; color: var(--text3); margin-bottom: 6px; }
+.stat-value { font-size: 24px; font-weight: 800; color: var(--text); line-height: 1; }
+.stat-sub { font-size: 10px; color: var(--text3); margin-top: 4px; }
+
+/* 날짜 필터 */
+.date-filter { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+.period-btn { padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border); background: transparent; font-size: 12px; font-weight: 600; color: var(--text2); cursor: pointer; font-family: inherit; transition: all 0.15s; }
+.period-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+.date-input { background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 12px; color: var(--text); font-family: inherit; outline: none; }
+.apply-btn { padding: 6px 16px; border-radius: 8px; background: var(--primary); color: #fff; border: none; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
+
+/* 테이블 */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th { text-align: left; padding: 8px 12px; color: var(--text3); font-size: 11px; font-weight: 600; border-bottom: 1px solid var(--border); }
+tbody td { padding: 10px 12px; color: var(--text2); border-bottom: 1px solid var(--border); }
+tbody tr:last-child td { border-bottom: none; }
+
+.badge { display: inline-block; padding: 3px 8px; border-radius: 100px; font-size: 10px; font-weight: 700; }
+.badge-blue { background: var(--blue-dim); color: var(--blue); }
+.badge-green { background: var(--green-dim); color: var(--green); }
+.badge-orange { background: var(--orange-dim); color: var(--orange); }
+.badge-gray { background: rgba(0,0,0,0.06); color: var(--text3); }
+
+/* 기사 목록 */
+.driver-list { display: flex; flex-direction: column; gap: 8px; }
+.driver-item { display: flex; align-items: center; gap: 12px; background: var(--bg); border-radius: 10px; padding: 12px 14px; }
+.driver-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary-dim); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.driver-name { font-size: 13px; font-weight: 700; color: var(--text); }
+.driver-info { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.driver-status { margin-left: auto; }
+
+/* 비번 변경 */
+.change-pw-form { display: flex; flex-direction: column; gap: 10px; }
+
+@media (max-width: 600px) {
+  .stat-grid { grid-template-columns: 1fr 1fr; }
+  .content { padding: 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- 로그인 화면 -->
+<div class="login-wrap" id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">🛵</div>
+      <div class="login-logo-text">심부름</div>
+      <div class="login-logo-sub">대리점 포털</div>
+    </div>
+    <div>
+      <label class="form-label">대리점 코드</label>
+      <input class="form-input" id="login-code" placeholder="대리점 코드 입력" style="text-transform:uppercase;" onkeyup="if(event.key==='Enter') document.getElementById('login-pw').focus()">
+      <label class="form-label">비밀번호</label>
+      <input class="form-input" id="login-pw" type="password" placeholder="비밀번호 입력" onkeyup="if(event.key==='Enter') doLogin()">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+        <input type="checkbox" id="remember-me" style="cursor:pointer;">
+        <label for="remember-me" style="font-size:12px;color:#888;cursor:pointer;">로그인 정보 저장</label>
+      </div>
+      <button class="login-btn" onclick="doLogin()">로그인</button>
+      <div class="login-error" id="login-error"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 메인 화면 -->
+<div id="main-screen" style="display:none;">
+  <div class="header">
+    <div class="header-logo">
+      <div class="header-logo-mark">🛵</div>
+      <div>
+        <div class="header-title">심부름 대리점 포털</div>
+        <div class="header-agent" id="header-agent-name"></div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="doLogout()">로그아웃</button>
+  </div>
+
+  <div class="content">
+    <!-- 통계 -->
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">💰 누적 리베이트</div>
+        <div class="stat-value" id="stat-total" style="color:var(--green);">-</div>
+        <div class="stat-sub">총 적립금</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">🛵 소속 기사</div>
+        <div class="stat-value" id="stat-drivers" style="color:var(--blue);">-</div>
+        <div class="stat-sub">등록 기사 수</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">📦 이번 달 배송</div>
+        <div class="stat-value" id="stat-deliveries" style="color:var(--primary);">-</div>
+        <div class="stat-sub">완료 건수</div>
+      </div>
+    </div>
+
+    <!-- 날짜 필터 -->
+    <div class="card">
+      <div class="card-title">리베이트 이력 조회</div>
+      <div class="date-filter">
+        <button class="period-btn active" onclick="setPeriod('today', this)">오늘</button>
+        <button class="period-btn" onclick="setPeriod('week', this)">1주</button>
+        <button class="period-btn" onclick="setPeriod('month', this)">1달</button>
+        <button class="period-btn" onclick="setPeriod('year', this)">1년</button>
+        <input type="date" id="date-start" class="date-input">
+        <span style="color:var(--text3);font-size:12px;">~</span>
+        <input type="date" id="date-end" class="date-input">
+        <button class="apply-btn" onclick="loadRebates()">조회</button>
+      </div>
+
+      <!-- 기간 요약 -->
+      <div id="period-summary" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;"></div>
+
+      <!-- 리베이트 이력 테이블 -->
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>유형</th><th>기사</th><th>금액</th><th>일시</th></tr></thead>
+          <tbody id="rebate-tbody"><tr><td colspan="4" style="text-align:center;color:var(--text3);padding:24px;">로딩 중...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 소속 기사 목록 -->
+    <div class="card">
+      <div class="card-title">소속 기사 목록</div>
+      <div class="driver-list" id="driver-list">
+        <div style="text-align:center;color:var(--text3);padding:24px;">로딩 중...</div>
+      </div>
+    </div>
+
+    <!-- 비밀번호 변경 -->
+    <div class="card">
+      <div class="card-title">비밀번호 변경</div>
+      <div class="change-pw-form">
+        <input class="form-input" type="password" id="pw-current" placeholder="현재 비밀번호" style="margin-bottom:0;">
+        <input class="form-input" type="password" id="pw-new" placeholder="새 비밀번호" style="margin-bottom:0;">
+        <input class="form-input" type="password" id="pw-confirm" placeholder="새 비밀번호 확인" style="margin-bottom:0;">
+        <button class="apply-btn" style="width:fit-content;" onclick="changePw()">변경하기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://sppvrikqjufrdsrfcokx.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwcHZyaWtxanVmcmRzcmZjb2t4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5OTA5NTMsImV4cCI6MjA5NTU2Njk1M30.hjFGqgmIz_CP3MWUZwGwEXKsnvL4DOPNgbOOCMpcX74';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentAgent = null;
+
+// URL 파라미터에서 코드 자동 입력
+const urlParams = new URLSearchParams(window.location.search);
+const codeFromUrl = urlParams.get('code');
+if (codeFromUrl) document.getElementById('login-code').value = codeFromUrl.toUpperCase();
+
+const savedCode = localStorage.getItem('agent_saved_code');
+const savedPw = localStorage.getItem('agent_saved_pw');
+if (savedCode) { document.getElementById('login-code').value = savedCode; document.getElementById('remember-me').checked = true; }
+if (savedPw) { document.getElementById('login-pw').value = savedPw; }
+
+async function doLogin() {
+  const code = document.getElementById('login-code').value.toUpperCase().trim();
+  const pw = document.getElementById('login-pw').value;
+  const errEl = document.getElementById('login-error');
+  if (!code || !pw) { errEl.textContent = '코드와 비밀번호를 입력해주세요.'; return; }
+
+  const { data: agent } = await db.from('agents').select('*').eq('code', code).maybeSingle();
+  if (!agent) { errEl.textContent = '존재하지 않는 대리점 코드입니다.'; return; }
+
+  // 비밀번호 확인 (temp_password 또는 password)
+  if (agent.password !== pw && agent.temp_password !== pw) {
+    errEl.textContent = '비밀번호가 올바르지 않습니다.';
+    return;
+  }
+
+  if (document.getElementById('remember-me').checked) {
+    localStorage.setItem('agent_saved_code', code);
+    localStorage.setItem('agent_saved_pw', pw);
+  } else {
+    localStorage.removeItem('agent_saved_code');
+    localStorage.removeItem('agent_saved_pw');
+  }
+
+  currentAgent = agent;
+  sessionStorage.setItem('agent_code', code);
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('main-screen').style.display = 'block';
+  document.getElementById('header-agent-name').textContent = agent.name + ' · ' + (agent.region || '');
+  initMain();
+}
+
+function doLogout() {
+  sessionStorage.removeItem('agent_code');
+  currentAgent = null;
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('main-screen').style.display = 'none';
+}
+
+async function initMain() {
+  setPeriod('today', document.querySelector('.period-btn'));
+  await loadStats();
+  await loadDrivers();
+}
+
+async function loadStats() {
+  // 누적 리베이트
+  document.getElementById('stat-total').textContent = (currentAgent.total_rebate||0).toLocaleString() + '원';
+
+  // 소속 기사 수
+  const { count } = await db.from('drivers').select('*', { count: 'exact', head: true }).eq('agent_code', currentAgent.code);
+  document.getElementById('stat-drivers').textContent = (count||0) + '명';
+
+  // 이번 달 배송 수
+  const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0,0,0,0);
+  const { data: drivers } = await db.from('drivers').select('id').eq('agent_code', currentAgent.code);
+  if (drivers && drivers.length > 0) {
+    const driverIds = drivers.map(d => d.id);
+    const { count: deliveryCount } = await db.from('orders').select('*', { count: 'exact', head: true }).in('driver_id', driverIds).eq('status', 'completed').gte('completed_at', monthStart.toISOString());
+    document.getElementById('stat-deliveries').textContent = (deliveryCount||0) + '건';
+  } else {
+    document.getElementById('stat-deliveries').textContent = '0건';
+  }
+}
+
+function setPeriod(period, btn) {
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const end = new Date();
+  const start = new Date();
+  if (period === 'today') { start.setHours(0,0,0,0); }
+  else if (period === 'week') { start.setDate(start.getDate() - 7); }
+  else if (period === 'month') { start.setMonth(start.getMonth() - 1); }
+  else if (period === 'year') { start.setFullYear(start.getFullYear() - 1); }
+  document.getElementById('date-start').value = start.toISOString().split('T')[0];
+  document.getElementById('date-end').value = end.toISOString().split('T')[0];
+  loadRebates();
+}
+
+async function loadRebates() {
+  const start = new Date(document.getElementById('date-start').value); start.setHours(0,0,0,0);
+  const end = new Date(document.getElementById('date-end').value); end.setHours(23,59,59,999);
+
+  const { data: rebates } = await db.from('agent_rebates')
+    .select('*, drivers(name, phone)')
+    .eq('agent_code', currentAgent.code)
+    .gte('created_at', start.toISOString())
+    .lte('created_at', end.toISOString())
+    .order('created_at', { ascending: false });
+
+  const typeMap = { signup:'🆕 기사 가입', first_delivery:'🎉 첫 배송', per_delivery:'📦 건당 보상', monthly_bonus:'🏆 월 보너스' };
+  const typeBadge = { signup:'badge-blue', first_delivery:'badge-green', per_delivery:'badge-gray', monthly_bonus:'badge-orange' };
+
+  const total = (rebates||[]).reduce((s,r) => s + r.amount, 0);
+  const byType = {};
+  (rebates||[]).forEach(r => { byType[r.type] = (byType[r.type]||0) + r.amount; });
+
+  document.getElementById('period-summary').innerHTML = `
+    <div style="background:var(--green-dim);border-radius:10px;padding:10px 16px;">
+      <div style="font-size:10px;color:var(--text3);">기간 합계</div>
+      <div style="font-size:20px;font-weight:800;color:var(--green);">${total.toLocaleString()}원</div>
+    </div>
+    ${Object.entries(byType).map(([k,v]) => `
+    <div style="background:var(--bg);border-radius:10px;padding:10px 16px;">
+      <div style="font-size:10px;color:var(--text3);">${typeMap[k]||k}</div>
+      <div style="font-size:14px;font-weight:700;color:var(--text);">${v.toLocaleString()}원</div>
+    </div>`).join('')}`;
+
+  const tbody = document.getElementById('rebate-tbody');
+  if (!rebates || rebates.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:24px;">이력 없음</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rebates.map(r => `
+    <tr>
+      <td><span class="badge ${typeBadge[r.type]||'badge-gray'}">${typeMap[r.type]||r.type}</span></td>
+      <td style="font-weight:600;">${r.drivers?.name||'-'} <span style="color:var(--text3);font-size:11px;">${r.drivers?.phone||''}</span></td>
+      <td style="color:var(--green);font-weight:700;">${r.amount.toLocaleString()}원</td>
+      <td style="font-size:11px;color:var(--text3);">${new Date(r.created_at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'})}</td>
+    </tr>`).join('');
+}
+
+async function loadDrivers() {
+  const { data: drivers } = await db.from('drivers')
+    .select('id, name, phone, is_online, is_approved, today_earnings, total_earnings, created_at')
+    .eq('agent_code', currentAgent.code)
+    .order('created_at', { ascending: false });
+
+  const container = document.getElementById('driver-list');
+  if (!drivers || drivers.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:var(--text3);padding:24px;">소속 기사 없음</div>';
+    return;
+  }
+  container.innerHTML = drivers.map(d => `
+    <div class="driver-item">
+      <div class="driver-avatar">🛵</div>
+      <div>
+        <div class="driver-name">${d.name||'-'}</div>
+        <div class="driver-info">${d.phone||'-'} · 누적 ${(d.total_earnings||0).toLocaleString()}원</div>
+      </div>
+      <div class="driver-status">
+        ${d.is_online ? '<span class="badge badge-green">온라인</span>' : '<span class="badge badge-gray">오프라인</span>'}
+        ${!d.is_approved ? '<span class="badge badge-orange" style="margin-left:4px;">심사중</span>' : ''}
+      </div>
+    </div>`).join('');
+}
+
+async function changePw() {
+  const current = document.getElementById('pw-current').value;
+  const newPw = document.getElementById('pw-new').value;
+  const confirm = document.getElementById('pw-confirm').value;
+  if (currentAgent.password !== current && currentAgent.temp_password !== current) {
+    alert('현재 비밀번호가 올바르지 않습니다.'); return;
+  }
+  if (!newPw || newPw.length < 4) { alert('새 비밀번호는 4자 이상이어야 합니다.'); return; }
+  if (newPw !== confirm) { alert('비밀번호가 일치하지 않습니다.'); return; }
+  const { error } = await db.from('agents').update({ password: newPw, temp_password: null }).eq('code', currentAgent.code);
+  if (error) { alert('변경 실패: ' + error.message); return; }
+  currentAgent.password = newPw;
+  currentAgent.temp_password = null;
+  alert('비밀번호가 변경됐습니다!');
+  ['pw-current','pw-new','pw-confirm'].forEach(id => document.getElementById(id).value = '');
+}
+
+// 세션 복원
+const sessionCode = sessionStorage.getItem('agent_code');
+if (sessionCode) {
+  db.from('agents').select('*').eq('code', sessionCode).maybeSingle().then(({ data }) => {
+    if (data) {
+      currentAgent = data;
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('main-screen').style.display = 'block';
+      document.getElementById('header-agent-name').textContent = data.name + ' · ' + (data.region || '');
+      initMain();
+    }
+  });
+}
+</script>
+</body>
+</html>
