@@ -302,8 +302,8 @@ async function loadRebates() {
     .lte('created_at', end.toISOString())
     .order('created_at', { ascending: false });
 
-  const typeMap = { signup:'🆕 기사 가입', first_delivery:'🎉 첫 배송', per_delivery:'📦 건당 보상', monthly_bonus:'🏆 월 보너스' };
-  const typeBadge = { signup:'badge-blue', first_delivery:'badge-green', per_delivery:'badge-gray', monthly_bonus:'badge-orange' };
+  const typeMap = { signup:'🆕 기사 가입', first_delivery:'🎉 첫 배송', third_delivery:'🎯 3건째 배송', per_delivery:'📦 건당 보상', monthly_bonus:'🏆 월 보너스' };
+  const typeBadge = { signup:'badge-blue', first_delivery:'badge-green', third_delivery:'badge-green', per_delivery:'badge-gray', monthly_bonus:'badge-orange' };
 
   const total = (rebates||[]).reduce((s,r) => s + r.amount, 0);
   const byType = {};
